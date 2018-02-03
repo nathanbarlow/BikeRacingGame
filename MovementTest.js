@@ -135,10 +135,10 @@ var boxB = Matter.Bodies.rectangle(baseMesh.position.x, baseMesh.position.z, 100
 var textureEarth = new THREE.TextureLoader().load( 'ground.jpg', function ( textureEarth ) {
     textureEarth.wrapS = textureEarth.wrapT = THREE.RepeatWrapping;
     textureEarth.offset.set( 0, 0 );
-    textureEarth.repeat.set( 4, 4 );
+    textureEarth.repeat.set( 8, 8 );
 } );
 
-var groundGeometry = new THREE.PlaneGeometry(6000, 6000, 4);
+var groundGeometry = new THREE.PlaneGeometry(12000, 12000, 8);
 var groundMaterial = new THREE.MeshLambertMaterial({
 	map: textureEarth,
 	// side: THREE.DoubleSide,
@@ -157,7 +157,7 @@ scene.add( baseMesh2 );
 var boxC = Matter.Bodies.rectangle(baseMesh2.position.x, baseMesh2.position.z, 1000, 100,{ isStatic: true });
 
 //CAMERA
-camera = new THREE.PerspectiveCamera( 45.0, window.innerWidth / window.innerHeight, 0.1, 10000 );
+camera = new THREE.PerspectiveCamera( 45.0, window.innerWidth / window.innerHeight, 0.1, 50000 );
 camera.position.set( character.position.x, 600, -1000 );
 var cameraTargetPosition = new THREE.Vector3();
 var cameraDelay = 50;
@@ -324,16 +324,18 @@ function globalXYFromLocalXY(forceX, forceY, inputBody){
 }
 
 function bikeLeanHandler() {
+	var rotationFactor = 0.015;
+	var resetFactor = 1;
 	//BIKE Lean handler
 	if(playerTurning == true){
 		if(character.angularVelocity > 0.015 ){
 			if(charModel.rotation.z > degToRad(-35)){
-				charModel.rotateZ(degToRad(-character.speed*.02));
+				charModel.rotateZ(degToRad(- character.speed * rotationFactor));
 			}
 		}
 		if(character.angularVelocity < -0.015 ){
 			if(charModel.rotation.z < degToRad(35)){
-				charModel.rotateZ(degToRad(+character.speed*.02));
+				charModel.rotateZ(degToRad(+ character.speed * rotationFactor));
 			}
 		}
 	}
@@ -341,10 +343,10 @@ function bikeLeanHandler() {
 	//Reset bike lean orientation if not turning
 	if(playerTurning == false || character.speed <= 40){
 		if(charModel.rotation.z > degToRad(1)){
-			charModel.rotateZ(degToRad(-1.5));
+			charModel.rotateZ(degToRad(-resetFactor));
 
 		} else if (charModel.rotation.z < degToRad(-1)){
-			charModel.rotateZ(degToRad(1.5));
+			charModel.rotateZ(degToRad(+resetFactor));
 
 		} else {
 			charModel.rotation.z = 0;
