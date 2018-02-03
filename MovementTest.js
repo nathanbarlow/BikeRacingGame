@@ -248,10 +248,6 @@ function render() {
 
 			//Rotate bike to lean in to turn
 			playerTurning = true;
-			if(charModel.rotation.z < degToRad(35)){
-				charModel.rotateZ(degToRad(+character.speed*.02));
-			}
-			// rotateAroundObjectAxis(charModel, new THREE.Vector3(0,0,1), degToRad(10));
   }
 
   if((keys[KEY_D])){
@@ -261,37 +257,18 @@ function render() {
 
 			//Rotate bike to lean in to turn
 			playerTurning = true;
-			if(charModel.rotation.z > degToRad(-35)){
-				charModel.rotateZ(degToRad(-character.speed*.02));
-			}
   }
-
-	//Reset bike lean orientation if not turning
-	if(playerTurning == false || character.speed <= 40){
-		if(charModel.rotation.z > degToRad(1)){
-			charModel.rotateZ(degToRad(-1.5));
-
-		} else if (charModel.rotation.z < degToRad(-1)){
-			charModel.rotateZ(degToRad(1.5));
-
-		} else {
-			charModel.rotation.z = 0;
-		}
-	}
-	//Reset playerTurning variable
-	playerTurning = false;
+	//Update the lean of the bike
+	bikeLeanHandler();
 
 	//Rotate Wheel based on character objects velocity
-	speedFactor = -0.09;
-	charMeshWheel.rotateX(degToRad(character.speed * speedFactor));
-
+	wheelRotationHandler();
 
 	//Turn Sideways velocity into forward velocity/Kill sideways velocity
 	var charVelocity = getObjectsLocalVelocity(character);
 	//check x axis velocity
 	if(Math.abs(charVelocity.x) >= 0.05){
 		//Kill x axis velocity
-		//globalXYFromLocalXY(forceX, forceY, inputBody)
 		let globalVel = globalXYFromLocalXY(0, charVelocity.y, character);
 		Matter.Body.setVelocity(character, globalVel);
 	}
@@ -309,11 +286,10 @@ function render() {
 
   camera.lookAt( charMesh.position );
 
-	// renderCount += 1;
-	// if (renderCount >= 60){
-	//   // console.log(character.velocity);
-	//   renderCount = 0;
-	// };
+	renderCount += 1;
+	if (renderCount >= 60){
+	  renderCount = 0;
+	};
 
   //Render scene
 	renderer.render(scene, camera);
@@ -345,4 +321,47 @@ function globalXYFromLocalXY(forceX, forceY, inputBody){
 	var globalY = forceX * Math.sin(inputBody.angle) + forceY * Math.cos(inputBody.angle);
 
 	return {x:globalX, y:globalY};
+}
+
+function bikeLeanHandler() {
+	//BIKE Lean handler
+	if(playerTurning == true){
+		if(character.angularVelocity > 0.015 ){
+			if(charModel.rotation.z > degToRad(-35)){
+				charModel.rotateZ(degToRad(-character.speed*.02));
+			}
+		}
+		if(character.angularVelocity < -0.015 ){
+			if(charModel.rotation.z < degToRad(35)){
+				charModel.rotateZ(degToRad(+character.speed*.02));
+			}
+		}
+	}
+
+	//Reset bike lean orientation if not turning
+	if(playerTurning == false || character.speed <= 40){
+		if(charModel.rotation.z > degToRad(1)){
+			charModel.rotateZ(degToRad(-1.5));
+
+		} else if (charModel.rotation.z < degToRad(-1)){
+			charModel.rotateZ(degToRad(1.5));
+
+		} else {
+			charModel.rotation.z = 0;
+		}
+	}
+	//Reset playerTurning variable
+	playerTurning = false;
+}
+
+function wheelRotationHandler() {
+	speedFactor = 0.09;
+
+	vel = getObjectsLocalVelocity(character);
+	if(vel.y < 0){
+		speedFactor *= -1;
+	} else {
+		speedFactor *= 1;
+	}
+	charMeshWheel.rotateX(degToRad(character.speed * speedFactor));
 }
