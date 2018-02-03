@@ -98,7 +98,7 @@ function handle_load_wheel(loadObject) {
 
 //set charModel rotation offset
 //(allows bike to lean left and right and rotate arround bottom of tire)
-var charModelCenterOffset = 165;
+var charModelCenterOffset = 140;
 charMeshWheel.position.y = charModelCenterOffset;
 charMeshSeat.position.y = charModelCenterOffset;
 charModel.position.y = -charModelCenterOffset;
@@ -114,8 +114,8 @@ scene.add( charMesh );
 
 
 var character = Matter.Bodies.rectangle(charMesh.position.x, charMesh.position.z, 130, 440, {
-  friction: 0.001,
-  frictionAir: 0.04,
+  friction: 0.0001,
+  frictionAir: 0.015,
 });
 
 
@@ -160,7 +160,7 @@ var boxC = Matter.Bodies.rectangle(baseMesh2.position.x, baseMesh2.position.z, 1
 camera = new THREE.PerspectiveCamera( 45.0, window.innerWidth / window.innerHeight, 0.1, 10000 );
 camera.position.set( character.position.x, 600, -1000 );
 var cameraTargetPosition = new THREE.Vector3();
-var cameraDelay = 75;
+var cameraDelay = 50;
 
 //ADD MOVEMENT CONTROLS
 // controls = new THREE.OrbitControls( camera );
@@ -213,41 +213,31 @@ function render() {
   charMesh.position.z = character.position.y;
   charMesh.rotation.y = -character.angle;
 
-  // react to key commands and apply force as needed
-  // x′=xcosθ−ysinθ
-  // y′=xsinθ+ycosθ
-
-	//RESET PLAYERS TILT ANGLE
-	//charMesh.rotation.z = 0;
-
-	//set position to Vector3
-	//rotateObject using matrix
-	//set position back to recorded Vector3
-
-
-
-
 	//KEY INPUT
   if((keys[KEY_S])){
-      let force = (+0.01 * character.mass);
-      var localForceX = 0;
-      var localForceY = force;
+      let localForceX = 0;
+      let localForceY = (+0.001 * character.mass);
+
+			//Figures out what local forc needs to be on vehicle
+			let globalForce = globalXYFromLocalXY(localForceX, localForceY, character);
+
       Matter.Body.applyForce(character,character.position,{
-        x:localForceX * Math.cos(character.angle) - localForceY * Math.sin(character.angle),
-        y:localForceX * Math.sin(character.angle) + localForceY * Math.cos(character.angle)
+        x:globalForce.x,
+        y:globalForce.y
       });
 			//charMesh.rotation.z = degToRad(10);
   }
 
 	if((keys[KEY_W])){
-      let force = (-0.02 * character.mass);
-      var localForceX = 0;
-      var localForceY = force;
+      let localForceX = 0;
+      let localForceY = (-0.007 * character.mass);
 
 			//Figures out what local forc needs to be on vehicle
+			let globalForce = globalXYFromLocalXY(localForceX, localForceY, character);
+
       Matter.Body.applyForce(character,character.position,{
-        x:localForceX * Math.cos(character.angle) - localForceY * Math.sin(character.angle),
-        y:localForceX * Math.sin(character.angle) + localForceY * Math.cos(character.angle)
+        x:globalForce.x,
+        y:globalForce.y
       });
   }
 
@@ -277,31 +267,34 @@ function render() {
   }
 
 	//Reset bike lean orientation if not turning
-	if(playerTurning == false || character.speed <= 25){
+	if(playerTurning == false || character.speed <= 40){
 		if(charModel.rotation.z > degToRad(1)){
-			charModel.rotateZ(degToRad(-2));
+			charModel.rotateZ(degToRad(-1.5));
 
 		} else if (charModel.rotation.z < degToRad(-1)){
-			charModel.rotateZ(degToRad(2));
+			charModel.rotateZ(degToRad(1.5));
 
 		} else {
 			charModel.rotation.z = 0;
 		}
 	}
+	//Reset playerTurning variable
 	playerTurning = false;
-
-  // renderCount += 1;
-  // if (renderCount >= 60){
-  //   // console.log(character.velocity);
-  //   renderCount = 0;
-  // };
 
 	//Rotate Wheel based on character objects velocity
 	speedFactor = -0.09;
 	charMeshWheel.rotateX(degToRad(character.speed * speedFactor));
 
-	//Turn Sideways velocity into forward velocity
-	//TODO: do this thing see video
+
+	//Turn Sideways velocity into forward velocity/Kill sideways velocity
+	var charVelocity = getObjectsLocalVelocity(character);
+	//check x axis velocity
+	if(Math.abs(charVelocity.x) >= 0.05){
+		//Kill x axis velocity
+		//globalXYFromLocalXY(forceX, forceY, inputBody)
+		let globalVel = globalXYFromLocalXY(0, charVelocity.y, character);
+		Matter.Body.setVelocity(character, globalVel);
+	}
 
   //Update Camera position with delay
 	cameraTargetPosition.set(
@@ -315,6 +308,12 @@ function render() {
 	}
 
   camera.lookAt( charMesh.position );
+
+	// renderCount += 1;
+	// if (renderCount >= 60){
+	//   // console.log(character.velocity);
+	//   renderCount = 0;
+	// };
 
   //Render scene
 	renderer.render(scene, camera);
@@ -339,7 +338,7 @@ function getObjectsLocalVelocity(inputBody) {
 	return returnValue;
 }
 
-function globalForceFromLocalForce(forceX, forceY, inputBody){
+function globalXYFromLocalXY(forceX, forceY, inputBody){
 	//input x and y desired local force and matter.js body to act on
 	//return a vector2 for Global forces to make that happen
 	var globalX = forceX * Math.cos(inputBody.angle) - forceY * Math.sin(inputBody.angle);
