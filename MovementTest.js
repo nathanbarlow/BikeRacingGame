@@ -63,7 +63,29 @@ scene.add( boardMesh );
 //make physics repersentation of board
 var boxA = Matter.Bodies.rectangle(boardMesh.position.x, boardMesh.position.z, boardX, boardZ);
 
-//BLENDER MODEL LOAD
+//BLENDER RACETRACK
+var loader = new THREE.JSONLoader(); //used for all blender model imports
+var raceTrackMesh = new THREE.Mesh();
+loader.load('RaceTrack1.json', handle_load_racetrack);
+
+function handle_load_racetrack(loadObject) {
+	raceTrackMesh.geometry = loadObject;
+
+	var textureRace = new THREE.TextureLoader().load( 'canyonwall1.jpg', function ( textureRace ) {
+	    textureRace.wrapS = textureRace.wrapT = THREE.RepeatWrapping;
+	} );
+
+	let mat = new THREE.MeshLambertMaterial({
+		map: textureRace,
+	});
+
+	raceTrackMesh.material = mat;
+	raceTrackMesh.scale.set(3000, 1000, 3000);
+	raceTrackMesh.position.set(0, -200, -500);
+	scene.add(raceTrackMesh);
+}
+
+//BLENDER MODEL BIKE LOAD
 //OBJECT Hierarchy: charMesh( charModel( charMeshWheel, charMeshSeat ) )
 
 var charMesh = new THREE.Group();
@@ -73,12 +95,11 @@ var charMeshWheel = new THREE.Mesh();
 var bikeTexture = new THREE.TextureLoader().load('Bike.png');
 
 //load Seat
-var loader = new THREE.JSONLoader();
 loader.load('BikeSeat.json', handle_load_seat);
 var thing;
 function handle_load_seat(loadObject) {
 	charMeshSeat.geometry = loadObject;
-	var mat = new THREE.MeshLambertMaterial({
+	let mat = new THREE.MeshLambertMaterial({
 		map: bikeTexture,
 	});
 	charMeshSeat.material = mat;
@@ -89,7 +110,7 @@ function handle_load_seat(loadObject) {
 loader.load('BikeWheel.json', handle_load_wheel)
 function handle_load_wheel(loadObject) {
 	charMeshWheel.geometry = loadObject;
-	var mat = new THREE.MeshLambertMaterial({
+	let mat = new THREE.MeshLambertMaterial({
 		map: bikeTexture,
 	});
 	charMeshWheel.material = mat;
@@ -135,10 +156,10 @@ var boxB = Matter.Bodies.rectangle(baseMesh.position.x, baseMesh.position.z, 100
 var textureEarth = new THREE.TextureLoader().load( 'ground.jpg', function ( textureEarth ) {
     textureEarth.wrapS = textureEarth.wrapT = THREE.RepeatWrapping;
     textureEarth.offset.set( 0, 0 );
-    textureEarth.repeat.set( 8, 8 );
+    textureEarth.repeat.set( 15, 15 );
 } );
 
-var groundGeometry = new THREE.PlaneGeometry(12000, 12000, 8);
+var groundGeometry = new THREE.PlaneGeometry(70000, 70000, 20);
 var groundMaterial = new THREE.MeshLambertMaterial({
 	map: textureEarth,
 	// side: THREE.DoubleSide,
