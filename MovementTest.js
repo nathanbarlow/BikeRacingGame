@@ -160,7 +160,7 @@ var boxC = Matter.Bodies.rectangle(baseMesh2.position.x, baseMesh2.position.z, 1
 camera = new THREE.PerspectiveCamera( 45.0, window.innerWidth / window.innerHeight, 0.1, 50000 );
 camera.position.set( character.position.x, 600, -1000 );
 var cameraTargetPosition = new THREE.Vector3();
-var cameraDelay = 50;
+var cameraDelay = 10;
 
 //ADD MOVEMENT CONTROLS
 // controls = new THREE.OrbitControls( camera );
@@ -241,23 +241,24 @@ function render() {
       });
   }
 
+	var turnResponsiveness = 0.003;
+	var maxTurn = 0.025;
   if((keys[KEY_A])){
-      let force = (-0.0019 * character.mass);
-      // Matter.Body.rotate(character, -0.04,);
-      Matter.Body.setAngularVelocity(character, -0.025);
+      let velocity = Math.max(character.angularVelocity - turnResponsiveness, -maxTurn);
+      Matter.Body.setAngularVelocity(character, velocity);
 
 			//Rotate bike to lean in to turn
 			playerTurning = true;
   }
 
   if((keys[KEY_D])){
-      let force = (+0.0019 * character.mass);
-      // Matter.Body.rotate(character, +0.04,);
-      Matter.Body.setAngularVelocity(character, +0.025);
+      let velocity = Math.min(character.angularVelocity + turnResponsiveness, maxTurn);
+      Matter.Body.setAngularVelocity(character, velocity);
 
 			//Rotate bike to lean in to turn
 			playerTurning = true;
   }
+
 	//Update the lean of the bike
 	bikeLeanHandler();
 
@@ -281,15 +282,13 @@ function render() {
 	);
 
 	if (camera.position.distanceTo(cameraTargetPosition) >= cameraDelay) {
-		camera.position.lerp(cameraTargetPosition, 0.07);
+		camera.position.lerp(cameraTargetPosition, 0.1);
 	}
 
   camera.lookAt( charMesh.position );
 
-	renderCount += 1;
-	if (renderCount >= 60){
-	  renderCount = 0;
-	};
+	//UPDATE DISPLAYED INFO
+	updateSpeedometer();
 
   //Render scene
 	renderer.render(scene, camera);
@@ -366,4 +365,12 @@ function wheelRotationHandler() {
 		speedFactor *= 1;
 	}
 	charMeshWheel.rotateX(degToRad(character.speed * speedFactor));
+}
+
+function updateSpeedometer(){
+	renderCount += 1;
+	if (renderCount >= 30){
+		document.getElementById("speedometer").innerHTML = character.speed.toFixed(0);
+		renderCount = 0;
+	};
 }
