@@ -81,7 +81,7 @@ function handle_load_racetrack(loadObject) {
 
 	raceTrackMesh.material = mat;
 	raceTrackMesh.scale.set(3000, 1000, 3000);
-	raceTrackMesh.position.set(0, -200, -500);
+	raceTrackMesh.position.set(0, -250, -500);
 	scene.add(raceTrackMesh);
 }
 
@@ -136,7 +136,7 @@ scene.add( charMesh );
 
 var character = Matter.Bodies.rectangle(charMesh.position.x, charMesh.position.z, 130, 440, {
   friction: 0.0001,
-  frictionAir: 0.015,
+  frictionAir: 0.012,
 });
 
 
@@ -189,8 +189,14 @@ var cameraDelay = 10;
 // controls.update();
 // controls.enabled = true;
 
+
 //ADD ALL PHYSICS BODIES TO WORLD
-Matter.World.add(engine.world, [boxA, boxB, boxC, character]);
+Matter.World.add(engine.world, [
+	boxA,
+	boxB,
+	boxC,
+	character,
+	]);
 
 //ADJUST GRAVITY
 engine.world.gravity.y = 0;
@@ -261,8 +267,10 @@ function render() {
         y:globalForce.y
       });
   }
-
-	var turnResponsiveness = 0.003;
+	// var speedTurnInfluence = Math.max(0.001,0.00001 * character.speed);
+	var speedTurnInfluence = 0.0000008 * character.speed;
+	console.log(speedTurnInfluence);
+	var turnResponsiveness = 0.001 - speedTurnInfluence;
 	var maxTurn = 0.025;
   if((keys[KEY_A])){
       let velocity = Math.max(character.angularVelocity - turnResponsiveness, -maxTurn);
@@ -344,34 +352,21 @@ function globalXYFromLocalXY(forceX, forceY, inputBody){
 }
 
 function bikeLeanHandler() {
-	var rotationFactor = 0.015;
-	var resetFactor = 1;
+	var rotationFactor = 35; //degrees
+	var maxAngularVelocity = 0.025;
+	var maxPossibleRotation = degToRad(35); //radions
+
 	//BIKE Lean handler
-	if(playerTurning == true){
-		if(character.angularVelocity > 0.015 ){
-			if(charModel.rotation.z > degToRad(-35)){
-				charModel.rotateZ(degToRad(- character.speed * rotationFactor));
-			}
-		}
-		if(character.angularVelocity < -0.015 ){
-			if(charModel.rotation.z < degToRad(35)){
-				charModel.rotateZ(degToRad(+ character.speed * rotationFactor));
-			}
-		}
+	charModel.rotation.z = degToRad(-character.angularVelocity * rotationFactor / maxAngularVelocity);
+
+	if (charModel.rotation.z > maxPossibleRotation) {
+		charModel.rotation.z = maxPossibleRotation;
 	}
 
-	//Reset bike lean orientation if not turning
-	if(playerTurning == false || character.speed <= 40){
-		if(charModel.rotation.z > degToRad(1)){
-			charModel.rotateZ(degToRad(-resetFactor));
-
-		} else if (charModel.rotation.z < degToRad(-1)){
-			charModel.rotateZ(degToRad(+resetFactor));
-
-		} else {
-			charModel.rotation.z = 0;
-		}
+	if (charModel.rotation.z < -maxPossibleRotation) {
+		charModel.rotation.z = -maxPossibleRotation;
 	}
+
 	//Reset playerTurning variable
 	playerTurning = false;
 }
