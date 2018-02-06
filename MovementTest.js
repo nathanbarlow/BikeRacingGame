@@ -2,6 +2,8 @@ var renderCount = 0;
 var speedFactor;
 var playerTurning = false;
 var rotObjectMatrix;
+var terrainCollisionCreation = false;
+var collisionVerticesGroups = [];
 
 const KEY_W = 87;
 const KEY_A = 65;
@@ -64,14 +66,15 @@ scene.add( boardMesh );
 var boxA = Matter.Bodies.rectangle(boardMesh.position.x, boardMesh.position.z, boardX, boardZ);
 
 //BLENDER RACETRACK
-var loader = new THREE.JSONLoader(); //used for all blender model imports
+var loader = new THREE.ObjectLoader(); //used for all blender model imports
 var raceTrackMesh = new THREE.Mesh();
+// var collisionMesh = new THREE.Mesh();
+
+
 loader.load('RaceTrack1.json', handle_load_racetrack);
-
 function handle_load_racetrack(loadObject) {
-	raceTrackMesh.geometry = loadObject;
-
-	var textureRace = new THREE.TextureLoader().load( 'canyonwall1.jpg', function ( textureRace ) {
+	//setup materials
+	let textureRace = new THREE.TextureLoader().load( 'canyonwall1.jpg', function ( textureRace ) {
 	    textureRace.wrapS = textureRace.wrapT = THREE.RepeatWrapping;
 	} );
 
@@ -79,14 +82,50 @@ function handle_load_racetrack(loadObject) {
 		map: textureRace,
 	});
 
+	let collisionMat = new THREE.MeshLambertMaterial({
+		color: 0x66ff33,
+	})
+
+
+	//Load walls and collision object
+	loadObject.traverse(function(child){
+		let objName = String(child.name).slice(0,9);
+
+		if(child.name == "walls"){
+			//assign wall geometry to raceTrackMesh.geometry
+			raceTrackMesh.geometry = child.geometry;
+
+		} else if(objName == "collision"){
+			var collisionMesh = new THREE.Mesh();
+			collisionMesh.geometry = child.geometry;
+
+			//rotate, scale, set position, and apply material
+			collisionMesh.material = collisionMat;
+			collisionMesh.rotation.set(degToRad(-90),0,0);
+			// collisionMesh.scale.set(3000, 3000, 3000);
+			collisionMesh.position.set(0, -250, -500);
+
+			//add mesh to scene
+			scene.add(collisionMesh);
+
+			//add verticies as list to collisionList
+			collisionVerticesGroups.push(collisionMesh.geometry.vertices);
+		}
+	});
+
 	raceTrackMesh.material = mat;
-	raceTrackMesh.scale.set(3000, 1000, 3000);
+	raceTrackMesh.rotation.set(degToRad(-90),0,0);
+	// raceTrackMesh.scale.set(3000, 3000, 3000);
 	raceTrackMesh.position.set(0, -250, -500);
+
 	scene.add(raceTrackMesh);
 }
 
 //BLENDER MODEL BIKE LOAD
 //OBJECT Hierarchy: charMesh( charModel( charMeshWheel, charMeshSeat ) )
+
+var loader = new THREE.JSONLoader(); //used for all blender model imports
+//^^ temporairy TODO: remove
 
 var charMesh = new THREE.Group();
 var charModel = new THREE.Group();
@@ -166,7 +205,7 @@ var groundMaterial = new THREE.MeshLambertMaterial({
 });
 
 var groundMesh = new THREE.Mesh(groundGeometry, groundMaterial);
-groundMesh.position.set(0, -250, 0);
+groundMesh.position.set(0, -2500, 0);
 groundMesh.rotation.x = (degToRad(-90));
 scene.add( groundMesh );
 
@@ -218,6 +257,11 @@ document.body.addEventListener("keydown", function(e) {
 requestAnimationFrame(render);
 
 function render() {
+	//once world has been rendered grab verticies and run collisionCreation once
+	if(terrainCollisionCreation == false){
+		collisionCreation();
+	}
+
   //write the cameras position to the console every 30 frames
   // frameCount += 1
   // if (frameCount == 30) {
@@ -269,7 +313,6 @@ function render() {
   }
 	// var speedTurnInfluence = Math.max(0.001,0.00001 * character.speed);
 	var speedTurnInfluence = 0.0000008 * character.speed;
-	console.log(speedTurnInfluence);
 	var turnResponsiveness = 0.001 - speedTurnInfluence;
 	var maxTurn = 0.025;
   if((keys[KEY_A])){
@@ -321,6 +364,8 @@ function render() {
 
   //Render scene
 	renderer.render(scene, camera);
+
+	//Run Render
   requestAnimationFrame(render);
 
 }
@@ -389,4 +434,21 @@ function updateSpeedometer(){
 		document.getElementById("speedometer").innerHTML = character.speed.toFixed(0);
 		renderCount = 0;
 	};
+}
+
+function collisionCreation() {
+	try{
+		//Get list of all vertices at y level of about zero
+		// for(i = 0; i < raceTrackMesh.geometry.vertices.length; i++) {
+		// 	if (raceTrackMesh.geometry.vertices[i].y > 0.001){
+		// 		console.log(raceTrackMesh.geometry.vertices[i]);
+		// 	}
+		// }
+		console.log(collisionVerticesGroups);
+		terrainCollisionCreation = true;
+	}
+	catch(err) {
+		//do nothing
+	}
+
 }
