@@ -23,7 +23,27 @@ renderer.setClearColor('black');
 scene = new THREE.Scene();
 
 //ADD PHYSICS ENGINE
+var canvas2D = document.getElementById('physicsCanvas');
+
 var engine = Matter.Engine.create();
+
+// create renderer
+var render2D = Matter.Render.create({
+    element: document.getElementById('physicsCanvas'),
+    engine: engine,
+    options: {
+        width: 400,
+        height: 400,
+				wireframes: false
+    }
+});
+
+Matter.Render.run(render2D);
+
+// create runner
+var runner = Matter.Runner.create();
+Matter.Runner.run(runner, engine);
+
 
 //LIGHTING
 var light = new THREE.AmbientLight(0xffffff, 0.5);
@@ -73,6 +93,7 @@ var raceTrackMesh = new THREE.Mesh();
 
 loader.load('RaceTrack1.json', handle_load_racetrack);
 function handle_load_racetrack(loadObject) {
+
 	//setup materials
 	let textureRace = new THREE.TextureLoader().load( 'canyonwall1.jpg', function ( textureRace ) {
 	    textureRace.wrapS = textureRace.wrapT = THREE.RepeatWrapping;
@@ -86,8 +107,7 @@ function handle_load_racetrack(loadObject) {
 		color: 0x66ff33,
 	})
 
-
-	//Load walls and collision object
+	//LOAD RACETRACK WALLS AND COLLISION MESH
 	loadObject.traverse(function(child){
 		let objName = String(child.name).slice(0,9);
 
@@ -108,8 +128,17 @@ function handle_load_racetrack(loadObject) {
 			//add mesh to scene
 			scene.add(collisionMesh);
 
-			//add verticies as list to collisionList
-			collisionVerticesGroups.push(collisionMesh.geometry.vertices);
+			//Get an array of all verticies for this object
+			var vertArray = [];
+			for(i = 0; i < collisionMesh.geometry.vertices.length; i++) {
+				// console.log(collisionMesh.geometry.vertices[i]);
+				var vert = collisionMesh.geometry.vertices[i];
+				vertArray.push(Matter.Vector.create(-vert.x, -vert.y));
+			}
+
+			//create Mater object
+			collisionObj = Matter.Bodies.fromVertices(0, 0, vertArray, { isStatic: true });
+			// Matter.World.add(engine.world, collisionObj);
 		}
 	});
 
@@ -177,6 +206,7 @@ var character = Matter.Bodies.rectangle(charMesh.position.x, charMesh.position.z
   friction: 0.0001,
   frictionAir: 0.012,
 });
+
 
 
 //ADD STATIC FLOOR
@@ -262,6 +292,10 @@ function render() {
 		collisionCreation();
 	}
 
+	Matter.Render.lookAt(render2D, {
+	        min: { x: character.position.x - 1500, y: character.position.y - 1500 },
+	        max: { x: character.position.x + 1500, y: character.position.y + 1500 }
+	    });
   //write the cameras position to the console every 30 frames
   // frameCount += 1
   // if (frameCount == 30) {
@@ -437,18 +471,6 @@ function updateSpeedometer(){
 }
 
 function collisionCreation() {
-	try{
-		//Get list of all vertices at y level of about zero
-		// for(i = 0; i < raceTrackMesh.geometry.vertices.length; i++) {
-		// 	if (raceTrackMesh.geometry.vertices[i].y > 0.001){
-		// 		console.log(raceTrackMesh.geometry.vertices[i]);
-		// 	}
-		// }
-		console.log(collisionVerticesGroups);
-		terrainCollisionCreation = true;
-	}
-	catch(err) {
-		//do nothing
-	}
+	//Matter.Bodies.fromVertices(x, y, [[vector]],
 
 }
