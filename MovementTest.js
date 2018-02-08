@@ -23,8 +23,6 @@ renderer.setClearColor('black');
 scene = new THREE.Scene();
 
 //ADD PHYSICS ENGINE
-var canvas2D = document.getElementById('physicsCanvas');
-
 var engine = Matter.Engine.create();
 
 // create renderer
@@ -128,17 +126,26 @@ function handle_load_racetrack(loadObject) {
 			//add mesh to scene
 			scene.add(collisionMesh);
 
+			var vertAverage = {x: 0, y: 0};
+
 			//Get an array of all verticies for this object
 			var vertArray = [];
 			for(i = 0; i < collisionMesh.geometry.vertices.length; i++) {
 				// console.log(collisionMesh.geometry.vertices[i]);
 				var vert = collisionMesh.geometry.vertices[i];
-				vertArray.push(Matter.Vector.create(-vert.x, -vert.y));
+				vertArray.push(Matter.Vector.create(vert.x, -vert.y));
+
+				vertAverage.x += vert.x;
+				vertAverage.y += -vert.y;
 			}
 
+			//get vertArrayCentre
+			vertAverage.x = vertAverage.x / vertArray.length;
+			vertAverage.y = vertAverage.y / vertArray.length;
+
 			//create Mater object
-			collisionObj = Matter.Bodies.fromVertices(0, 0, vertArray, { isStatic: true });
-			// Matter.World.add(engine.world, collisionObj);
+			collisionObj = Matter.Bodies.fromVertices(vertAverage.x, vertAverage.y, vertArray, { isStatic: true });
+			Matter.World.add(engine.world, collisionObj);
 		}
 	});
 
@@ -201,13 +208,10 @@ charModel.add( charMeshWheel );
 charMesh.add( charModel );
 scene.add( charMesh );
 
-
 var character = Matter.Bodies.rectangle(charMesh.position.x, charMesh.position.z, 130, 440, {
   friction: 0.0001,
   frictionAir: 0.012,
 });
-
-
 
 //ADD STATIC FLOOR
 var baseGeometry = new THREE.BoxGeometry(1000, 100, 100);
@@ -292,9 +296,10 @@ function render() {
 		collisionCreation();
 	}
 
+	var viewZoom = 8000;
 	Matter.Render.lookAt(render2D, {
-	        min: { x: character.position.x - 1500, y: character.position.y - 1500 },
-	        max: { x: character.position.x + 1500, y: character.position.y + 1500 }
+	        min: { x: character.position.x - viewZoom, y: character.position.y - viewZoom },
+	        max: { x: character.position.x + viewZoom, y: character.position.y + viewZoom }
 	    });
   //write the cameras position to the console every 30 frames
   // frameCount += 1
