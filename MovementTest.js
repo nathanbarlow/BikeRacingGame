@@ -86,6 +86,7 @@ var boxA = Matter.Bodies.rectangle(boardMesh.position.x, boardMesh.position.z, b
 //BLENDER RACETRACK
 var loader = new THREE.ObjectLoader(); //used for all blender model imports
 var raceTrackMesh = new THREE.Mesh();
+var raceTrackCollision = new THREE.Group();
 // var collisionMesh = new THREE.Mesh();
 
 
@@ -121,10 +122,10 @@ function handle_load_racetrack(loadObject) {
 			collisionMesh.material = collisionMat;
 			collisionMesh.rotation.set(degToRad(-90),0,0);
 			// collisionMesh.scale.set(3000, 3000, 3000);
-			collisionMesh.position.set(0, -250, -500);
+			collisionMesh.position.set(0, -250, 0);
 
 			//add mesh to scene
-			scene.add(collisionMesh);
+			raceTrackCollision.add(collisionMesh);
 
 			var vertAverage = {x: 0, y: 0};
 
@@ -136,7 +137,7 @@ function handle_load_racetrack(loadObject) {
 				vertArray.push(Matter.Vector.create(vert.x, -vert.y));
 
 				vertAverage.x += vert.x;
-				vertAverage.y += -vert.y;
+				vertAverage.y -= vert.y;
 			}
 
 			//get vertArrayCentre
@@ -152,9 +153,10 @@ function handle_load_racetrack(loadObject) {
 	raceTrackMesh.material = mat;
 	raceTrackMesh.rotation.set(degToRad(-90),0,0);
 	// raceTrackMesh.scale.set(3000, 3000, 3000);
-	raceTrackMesh.position.set(0, -250, -500);
+	raceTrackMesh.position.set(0, -250, 0);
 
 	scene.add(raceTrackMesh);
+	// scene.add(raceTrackCollision);
 }
 
 //BLENDER MODEL BIKE LOAD
@@ -200,7 +202,7 @@ charMeshSeat.position.y = charModelCenterOffset;
 charModel.position.y = -charModelCenterOffset;
 
 //Set position of Bike in world
-charMesh.position.set(-50, -78, -1700);
+charMesh.position.set(3600, -78, 471);
 
 //Setup Group Hierarchy and add to scene
 charModel.add( charMeshSeat );
@@ -239,7 +241,7 @@ var groundMaterial = new THREE.MeshLambertMaterial({
 });
 
 var groundMesh = new THREE.Mesh(groundGeometry, groundMaterial);
-groundMesh.position.set(0, -2500, 0);
+groundMesh.position.set(0, -250, 0);
 groundMesh.rotation.x = (degToRad(-90));
 scene.add( groundMesh );
 
