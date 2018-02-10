@@ -30,8 +30,8 @@ var render2D = Matter.Render.create({
     element: document.getElementById('physicsCanvas'),
     engine: engine,
     options: {
-        width: 400,
-        height: 400,
+        width: 300,
+        height: 300,
 				wireframes: false
     }
 });
@@ -60,6 +60,22 @@ var textureCube = new THREE.CubeTextureLoader()
 		.setPath( 'skybox/')
 		.load( [ 'morning_ft.jpg', 'morning_bk.jpg', 'morning_up.jpg', 'morning_dn.jpg', 'morning_rt.jpg', 'morning_lf.jpg' ] );
 scene.background = textureCube;
+
+//PARTICLES
+// var particles = new THREE.Geometry();
+//
+// //add particles to geometry
+// for (var p = 0; p < 2000; p++){
+// 	// (3600, -78, 471); character start position
+// 	var particle = new THREE.Vector3(Math.random()*1000 + 3600, Math.random()*1000, Math.random()*1000 + 500);
+// 	particles.vertices.push(particle);
+// }
+// var particleMaterial = new THREE.ParticleBasicMaterial({ color: 0xeeeeee, size: 2 });
+//
+// var particleSystem = new THREE.ParticleSystem(particles,
+//
+// scene.add(particleSystem);
+
 
 
 //GO BOARD BASE
