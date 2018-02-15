@@ -62,19 +62,29 @@ var textureCube = new THREE.CubeTextureLoader()
 scene.background = textureCube;
 
 //PARTICLES
-// var particles = new THREE.Geometry();
-//
-// //add particles to geometry
-// for (var p = 0; p < 2000; p++){
-// 	// (3600, -78, 471); character start position
-// 	var particle = new THREE.Vector3(Math.random()*1000 + 3600, Math.random()*1000, Math.random()*1000 + 500);
-// 	particles.vertices.push(particle);
-// }
-// var particleMaterial = new THREE.ParticleBasicMaterial({ color: 0xeeeeee, size: 2 });
-//
-// var particleSystem = new THREE.ParticleSystem(particles,
-//
-// scene.add(particleSystem);
+var particles = new THREE.Geometry();
+
+//add particles to geometry
+for (var p = 0; p < 500; p++){
+	// (3600, -78, 471); character start position
+	var particle = new THREE.Vector3(Math.random()*50 + 3600, Math.random()*300, Math.random()*50 + 500);
+	particles.vertices.push(particle);
+}
+var smokeTexture = THREE.ImageUtils.loadTexture('smoke.png');
+
+var smokeMaterial = new THREE.ParticleBasicMaterial({
+	map: smokeTexture,
+	transparent: true,
+	blending: THREE.AdditiveBlending,
+	size: 50,
+	color: 0x111111
+});
+
+var particleMaterial = new THREE.ParticleBasicMaterial({ color: 0xeeeeee, size: 5 });
+
+var particleSystem = new THREE.ParticleSystem(particles, smokeMaterial);
+
+scene.add(particleSystem);
 
 
 
@@ -102,25 +112,40 @@ var boxA = Matter.Bodies.rectangle(boardMesh.position.x, boardMesh.position.z, b
 //BLENDER RACETRACK
 var loader = new THREE.ObjectLoader(); //used for all blender model imports
 var raceTrackMesh = new THREE.Mesh();
+var mountainMesh = new THREE.Mesh();
+var lavaMesh = new THREE.Mesh();
+var raceMeshGroup = new THREE.Group();
 var raceTrackCollision = new THREE.Group();
 // var collisionMesh = new THREE.Mesh();
 
+var textureLava = new THREE.TextureLoader().load( 'lava.png', function ( textureLava ) {
+		textureLava.wrapS = textureLava.wrapT = THREE.RepeatWrapping;
+} );
+var matLava = new THREE.MeshLambertMaterial({
+	map: textureLava,
+});
 
 loader.load('RaceTrack1.json', handle_load_racetrack);
 function handle_load_racetrack(loadObject) {
 
 	//setup materials
-	let textureRace = new THREE.TextureLoader().load( 'canyonwall1.jpg', function ( textureRace ) {
-	    textureRace.wrapS = textureRace.wrapT = THREE.RepeatWrapping;
+	let textureWall = new THREE.TextureLoader().load( 'canyonwall1.jpg', function ( textureWall ) {
+	    textureWall.wrapS = textureWall.wrapT = THREE.RepeatWrapping;
 	} );
+	let matCanyonWall = new THREE.MeshLambertMaterial({
+		map: textureWall,
+	});
 
-	let mat = new THREE.MeshLambertMaterial({
-		map: textureRace,
+	let textureCanyon = new THREE.TextureLoader().load( 'canyon2.jpg', function ( textureCanyon ) {
+	    textureCanyon.wrapS = textureCanyon.wrapT = THREE.RepeatWrapping;
+	} );
+	let matCanyon = new THREE.MeshLambertMaterial({
+		map: textureCanyon,
 	});
 
 	let collisionMat = new THREE.MeshLambertMaterial({
 		color: 0x66ff33,
-	})
+	});
 
 	//LOAD RACETRACK WALLS AND COLLISION MESH
 	loadObject.traverse(function(child){
@@ -129,6 +154,24 @@ function handle_load_racetrack(loadObject) {
 		if(child.name == "walls"){
 			//assign wall geometry to raceTrackMesh.geometry
 			raceTrackMesh.geometry = child.geometry;
+			raceTrackMesh.material = matCanyonWall;
+			raceMeshGroup.add(raceTrackMesh);
+
+		} else if(objName == "Mountains"){
+			mountainMesh.geometry = child.geometry;
+			mountainMesh.material = matCanyon;
+			raceMeshGroup.add(mountainMesh);
+
+		} else if(objName == "LavaFalls"){
+			lavaMesh.geometry = child.geometry;
+			lavaMesh.material = matLava;
+			raceMeshGroup.add(lavaMesh);
+
+		} else if(objName == "canyonObj"){
+			var canyonMesh = new THREE.Mesh();
+			canyonMesh.geometry = child.geometry;
+			canyonMesh.material = matCanyon;
+			raceMeshGroup.add(canyonMesh);
 
 		} else if(objName == "collision"){
 			var collisionMesh = new THREE.Mesh();
@@ -166,12 +209,11 @@ function handle_load_racetrack(loadObject) {
 		}
 	});
 
-	raceTrackMesh.material = mat;
-	raceTrackMesh.rotation.set(degToRad(-90),0,0);
-	// raceTrackMesh.scale.set(3000, 3000, 3000);
-	raceTrackMesh.position.set(0, -250, 0);
 
-	scene.add(raceTrackMesh);
+	raceMeshGroup.rotation.set(degToRad(-90),0,0);
+	raceMeshGroup.position.set(0, -250, 0);
+
+	scene.add(raceMeshGroup);
 	// scene.add(raceTrackCollision);
 }
 
@@ -179,8 +221,6 @@ function handle_load_racetrack(loadObject) {
 //OBJECT Hierarchy: charMesh( charModel( charMeshWheel, charMeshSeat ) )
 
 var loader = new THREE.JSONLoader(); //used for all blender model imports
-//^^ temporairy TODO: remove
-
 var charMesh = new THREE.Group();
 var charModel = new THREE.Group();
 var charMeshSeat = new THREE.Mesh();
@@ -218,7 +258,7 @@ charMeshSeat.position.y = charModelCenterOffset;
 charModel.position.y = -charModelCenterOffset;
 
 //Set position of Bike in world
-charMesh.position.set(3600, -78, 471);
+charMesh.position.set(3600, -78, 471); //0, -200, -500
 
 //Setup Group Hierarchy and add to scene
 charModel.add( charMeshSeat );
@@ -229,6 +269,7 @@ scene.add( charMesh );
 var character = Matter.Bodies.rectangle(charMesh.position.x, charMesh.position.z, 130, 440, {
   friction: 0.0001,
   frictionAir: 0.012,
+	mass: 500,
 });
 
 //ADD STATIC FLOOR
@@ -370,7 +411,7 @@ function render() {
   }
 	// var speedTurnInfluence = Math.max(0.001,0.00001 * character.speed);
 	var speedTurnInfluence = 0.0000008 * character.speed;
-	var turnResponsiveness = 0.001 - speedTurnInfluence;
+	var turnResponsiveness = 0.0007 - speedTurnInfluence;
 	var maxTurn = 0.025;
   if((keys[KEY_A])){
       let velocity = Math.max(character.angularVelocity - turnResponsiveness, -maxTurn);
@@ -394,10 +435,13 @@ function render() {
 	//Rotate Wheel based on character objects velocity
 	wheelRotationHandler();
 
+	//Update Lava Material
+	textureLava.offset.y += 0.0005;
+
 	//Turn Sideways velocity into forward velocity/Kill sideways velocity
 	var charVelocity = getObjectsLocalVelocity(character);
 	//check x axis velocity
-	if(Math.abs(charVelocity.x) >= 0.05){
+	if(Math.abs(charVelocity.x) >= 0.1){
 		//Kill x axis velocity
 		let globalVel = globalXYFromLocalXY(0, charVelocity.y, character);
 		Matter.Body.setVelocity(character, globalVel);
