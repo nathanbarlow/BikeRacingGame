@@ -112,8 +112,7 @@ var boxA = Matter.Bodies.rectangle(boardMesh.position.x, boardMesh.position.z, b
 //BLENDER RACETRACK
 var loader = new THREE.ObjectLoader(); //used for all blender model imports
 var raceTrackMesh = new THREE.Mesh();
-var mountainMesh = new THREE.Mesh();
-var lavaMesh = new THREE.Mesh();
+var raceGroundMesh = new THREE.Mesh();
 var raceMeshGroup = new THREE.Group();
 var raceTrackCollision = new THREE.Group();
 // var collisionMesh = new THREE.Mesh();
@@ -143,6 +142,13 @@ function handle_load_racetrack(loadObject) {
 		map: textureCanyon,
 	});
 
+	let textureGround = new THREE.TextureLoader().load( 'DirtRoad.jpg', function ( textureGround ) {
+	    textureGround.wrapS = textureGround.wrapT = THREE.RepeatWrapping;
+	} );
+	let matGround = new THREE.MeshLambertMaterial({
+		map: textureGround,
+	});
+
 	let collisionMat = new THREE.MeshLambertMaterial({
 		color: 0x66ff33,
 	});
@@ -158,11 +164,18 @@ function handle_load_racetrack(loadObject) {
 			raceMeshGroup.add(raceTrackMesh);
 
 		} else if(objName == "Mountains"){
+			var mountainMesh = new THREE.Mesh();
 			mountainMesh.geometry = child.geometry;
 			mountainMesh.material = matCanyon;
 			raceMeshGroup.add(mountainMesh);
 
+		} else if(objName == "GroundObj"){
+			raceGroundMesh.geometry = child.geometry;
+			raceGroundMesh.material = matGround;
+			raceMeshGroup.add(raceGroundMesh);
+
 		} else if(objName == "LavaFalls"){
+			var lavaMesh = new THREE.Mesh();
 			lavaMesh.geometry = child.geometry;
 			lavaMesh.material = matLava;
 			raceMeshGroup.add(lavaMesh);
@@ -285,22 +298,22 @@ scene.add( baseMesh );
 var boxB = Matter.Bodies.rectangle(baseMesh.position.x, baseMesh.position.z, 1000, 100,{ isStatic: true });
 
 //ADD EARTH GROUND
-var textureEarth = new THREE.TextureLoader().load( 'ground.jpg', function ( textureEarth ) {
-    textureEarth.wrapS = textureEarth.wrapT = THREE.RepeatWrapping;
-    textureEarth.offset.set( 0, 0 );
-    textureEarth.repeat.set( 15, 15 );
-} );
-
-var groundGeometry = new THREE.PlaneGeometry(70000, 70000, 20);
-var groundMaterial = new THREE.MeshLambertMaterial({
-	map: textureEarth,
-	// side: THREE.DoubleSide,
-});
-
-var groundMesh = new THREE.Mesh(groundGeometry, groundMaterial);
-groundMesh.position.set(0, -250, 0);
-groundMesh.rotation.x = (degToRad(-90));
-scene.add( groundMesh );
+// var textureEarth = new THREE.TextureLoader().load( 'ground.jpg', function ( textureEarth ) {
+//     textureEarth.wrapS = textureEarth.wrapT = THREE.RepeatWrapping;
+//     textureEarth.offset.set( 0, 0 );
+//     textureEarth.repeat.set( 15, 15 );
+// } );
+//
+// var groundGeometry = new THREE.PlaneGeometry(70000, 70000, 20);
+// var groundMaterial = new THREE.MeshLambertMaterial({
+// 	map: textureEarth,
+// 	// side: THREE.DoubleSide,
+// });
+//
+// var groundMesh = new THREE.Mesh(groundGeometry, groundMaterial);
+// groundMesh.position.set(0, -250, 0);
+// groundMesh.rotation.x = (degToRad(-90));
+// scene.add( groundMesh );
 
 //ADD STATIC FLOOR2
 var baseMesh2 = new THREE.Mesh(baseGeometry, baseMaterial);
