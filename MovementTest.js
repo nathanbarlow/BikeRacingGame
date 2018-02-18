@@ -11,7 +11,6 @@ const KEY_S = 83;
 const KEY_D = 68;
 var keys = [];
 
-cameraRelative = new THREE.Vector3 (0, 600, 2000);
 
 //RENDERER
 var renderer = new THREE.WebGLRenderer({canvas: document.getElementById('myCanvas'), antialias: true});
@@ -222,24 +221,30 @@ function handle_load_racetrack(loadObject) {
 		}
 	});
 
-
+	//Orient and position the imported mesh objects
 	raceMeshGroup.rotation.set(degToRad(-90),0,0);
 	raceMeshGroup.position.set(0, -250, 0);
 
+	//Add improted mesh objects to scene
 	scene.add(raceMeshGroup);
-	// scene.add(raceTrackCollision);
 }
 
+
+//CREATE PLAYER OBJECT
 var player = {
-	globalLevel	: new THREE.Group(),
-	localLevel	: new THREE.Group(),
-	seat				: new THREE.Mesh(),
-	wheel				: new THREE.Mesh(),
-	texture			: new THREE.TextureLoader().load('Bike.png'),
-	collision		: "set up in player.init",
+	startPosition			: new THREE.Vector3(3600, -78, 471),
+	globalLevel				: new THREE.Group(),
+	localLevel				: new THREE.Group(),
+	seat							: new THREE.Mesh(),
+	wheel							: new THREE.Mesh(),
+	texture						: new THREE.TextureLoader().load('Bike.png'),
+	collision					: "set up in player.init",
+	maxTurn						: 0.025,
+	forwardVelocity		: 0.007,
+	backwardsVelocity	: 0.001,
+	getPosition: function(){return player.collision.position},
 	speedTurnInfluence: function(){return 0.0000008 * player.collision.speed},
 	turnResponsiveness: function(){return 0.0007 - player.speedTurnInfluence()},
-	maxTurn						: 0.025,
 
 	sync: function(){
 		player.globalLevel.position.x = player.collision.position.x;
@@ -265,7 +270,7 @@ var player = {
 
 	moveForward: function(){
 		let localForceX = 0;
-		let localForceY = (-0.007 * player.collision.mass);
+		let localForceY = (-player.forwardVelocity * player.collision.mass);
 
 		//Figures out what local forc needs to be on vehicle
 		let globalForce = globalXYFromLocalXY(localForceX, localForceY, player.collision);
@@ -278,7 +283,7 @@ var player = {
 
 	moveBackward: function(){
 		let localForceX = 0;
-		let localForceY = (+0.001 * player.collision.mass);
+		let localForceY = (player.backwardsVelocity * player.collision.mass);
 
 		//Figures out what local forc needs to be on vehicle
 		let globalForce = globalXYFromLocalXY(localForceX, localForceY, player.collision);
@@ -321,6 +326,39 @@ var player = {
 		player.wheel.rotateX(degToRad(player.collision.speed * speedFactor));
 	},
 
+	sidewaysVelocityHandler: function(){
+		var charVelocity = getObjectsLocalVelocity(player.collision);
+		//check x axis velocity
+		if(Math.abs(charVelocity.x) >= 0.1){
+			//Kill x axis velocity
+			let globalVel = globalXYFromLocalXY(0, charVelocity.y, player.collision);
+			Matter.Body.setVelocity(player.collision, globalVel);
+		}
+	},
+
+	setPosition: function(positionX, positionY){
+		//sets the player.collision position
+		Matter.Body.setPosition(player.collision, {x: positionX, y: positionY});
+	},
+
+	setAngle: function(rot){
+		Matter.Body.setAngle(player.collision, -rot);
+	},
+
+	update: function(){
+		//Sync the Three.js mesh objects position with the Matter.js collision object
+		player.sync();
+
+		//Update the lean of the bike
+		player.LeanHandler();
+
+		//Rotate Wheel based on player.collision objects velocity
+		player.wheelRotationHandler();
+
+		//Turn Sideways velocity into forward velocity/Kill sideways velocity
+		player.sidewaysVelocityHandler();
+	},
+
 	init: function(){
 		//BLENDER MODEL BIKE LOAD
 		//OBJECT Hierarchy: player.globalLevel( player.localLevel( player.wheel, player.seat ) )
@@ -356,7 +394,11 @@ var player = {
 		player.localLevel.position.y = -charModelCenterOffset;
 
 		//Set position of Bike in world
-		player.globalLevel.position.set(3600, -78, 471); //0, -200, -500
+		player.globalLevel.position.set(
+			player.startPosition.x,
+			player.startPosition.y,
+			player.startPosition.z
+		);
 
 		//Setup Group Hierarchy and add to scene
 		player.localLevel.add( player.seat );
@@ -365,14 +407,20 @@ var player = {
 		scene.add( player.globalLevel );
 
 		//Set up player collision with Matter.js
-		player.collision = Matter.Bodies.rectangle(player.globalLevel.position.x, player.globalLevel.position.z, 130, 440, {
-			friction: 0.0001,
-			frictionAir: 0.012,
-			mass: 500,
-		});
+		player.collision = Matter.Bodies.rectangle(
+			player.globalLevel.position.x, //start x
+			player.globalLevel.position.z, //start y
+			130, 440, //width, length
+			{
+				friction: 0.0001,
+				frictionAir: 0.012,
+				mass: 500,
+			}
+		);
 	}
 };
 
+//INITIALIZE PLAYER
 player.init();
 
 
@@ -400,8 +448,27 @@ var boxC = Matter.Bodies.rectangle(baseMesh2.position.x, baseMesh2.position.z, 1
 //CAMERA
 camera = new THREE.PerspectiveCamera( 45.0, window.innerWidth / window.innerHeight, 0.1, 50000 );
 camera.position.set( player.collision.position.x, 600, -1000 );
-var cameraTargetPosition = new THREE.Vector3();
-var cameraDelay = 10;
+
+//Extnending Camera Object Properties and Methods
+camera.targetPosition = new THREE.Vector3();
+camera.delay = 10;
+camera.followObj = player.globalLevel;
+camera.offset = new THREE.Vector3 (0, 600, 2000);
+
+camera.update = function(){
+	camera.targetPosition.set(
+		camera.followObj.position.x + camera.offset.x * Math.cos(-camera.followObj.rotation.y) - camera.offset.z * Math.sin(-camera.followObj.rotation.y),
+		camera.offset.y,
+		camera.followObj.position.z + camera.offset.x * Math.sin(-camera.followObj.rotation.y) + camera.offset.z * Math.cos(-camera.followObj.rotation.y)
+	);
+
+	if (camera.position.distanceTo(camera.targetPosition) >= camera.delay) {
+		camera.position.lerp(camera.targetPosition, 0.1);
+	}
+
+	camera.lookAt( camera.followObj.position );
+},
+
 
 
 //ADD MOVEMENT CONTROLS
@@ -440,11 +507,7 @@ document.body.addEventListener("keydown", function(e) {
 requestAnimationFrame(render);
 
 function render() {
-	//once world has been rendered grab verticies and run collisionCreation once
-	if(terrainCollisionCreation == false){
-		collisionCreation();
-	}
-
+	//Collision Map keep player centred
 	var viewZoom = 8000;
 	Matter.Render.lookAt(render2D, {
 	        min: { x: player.collision.position.x - viewZoom, y: player.collision.position.y - viewZoom },
@@ -457,18 +520,7 @@ function render() {
   //   frameCount = 0;
   // }
 
-  //Update location of objects
-  boardMesh.position.x = boxA.position.x;
-  boardMesh.position.z = boxA.position.y;
-  boardMesh.rotation.y = -boxA.angle;
 
-  baseMesh.position.x = boxB.position.x;
-  baseMesh.position.z = boxB.position.y;
-
-  baseMesh2.position.x = boxC.position.x;
-  baseMesh2.position.z = boxC.position.y;
-
-  player.sync();
 
 	//KEY INPUT
   if((keys[KEY_S])){
@@ -487,36 +539,22 @@ function render() {
 		player.turnRight();
   }
 
-	//Update the lean of the bike
-	player.LeanHandler();
+	//Update location of objects
+	boardMesh.position.x = boxA.position.x;
+	boardMesh.position.z = boxA.position.y;
+	boardMesh.rotation.y = -boxA.angle;
 
-	//Rotate Wheel based on player.collision objects velocity
-	player.wheelRotationHandler();
+	baseMesh.position.x = boxB.position.x;
+	baseMesh.position.z = boxB.position.y;
 
-	//Update Lava Material
+	baseMesh2.position.x = boxC.position.x;
+	baseMesh2.position.z = boxC.position.y;
+
+	//Update Objects
 	textureLava.offset.y += 0.0005;
 
-	//Turn Sideways velocity into forward velocity/Kill sideways velocity
-	var charVelocity = getObjectsLocalVelocity(player.collision);
-	//check x axis velocity
-	if(Math.abs(charVelocity.x) >= 0.1){
-		//Kill x axis velocity
-		let globalVel = globalXYFromLocalXY(0, charVelocity.y, player.collision);
-		Matter.Body.setVelocity(player.collision, globalVel);
-	}
-
-  //Update Camera position with delay
-	cameraTargetPosition.set(
-		player.globalLevel.position.x + cameraRelative.x * Math.cos(player.collision.angle) - cameraRelative.z * Math.sin(player.collision.angle),
-    cameraRelative.y,
-    player.globalLevel.position.z + cameraRelative.x * Math.sin(player.collision.angle) + cameraRelative.z * Math.cos(player.collision.angle)
-	);
-
-	if (camera.position.distanceTo(cameraTargetPosition) >= cameraDelay) {
-		camera.position.lerp(cameraTargetPosition, 0.1);
-	}
-
-  camera.lookAt( player.globalLevel.position );
+	player.update();
+	camera.update();
 
 	//UPDATE DISPLAYED INFO
 	updateSpeedometer();
@@ -561,9 +599,4 @@ function updateSpeedometer(){
 		document.getElementById("speedometer").innerHTML = player.collision.speed.toFixed(0);
 		renderCount = 0;
 	};
-}
-
-function collisionCreation() {
-	//Matter.Bodies.fromVertices(x, y, [[vector]],
-
 }
